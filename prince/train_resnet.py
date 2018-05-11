@@ -13,6 +13,7 @@ from scipy import ndimage
 import torchvision
 from torch.autograd import Variable
 import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
 import torch.optim as optim
 import random
 import cv2
@@ -195,10 +196,13 @@ print("transform")
 if opt.model_type == "resnet":
     old_train_X = train_X
     train_X = to_rgb1a(old_train_X, 227, 227)
+    del old_train_X
     old_valid_X = valid_X
     valid_X = to_rgb1a(old_valid_X, 227, 227)
+    del old_valid_X
     old_test_X = test_X
     test_X = to_rgb1a(old_test_X, 227, 227)
+    del old_test_X
 
 
     resnet = models.resnet50(pretrained=True)
@@ -231,21 +235,25 @@ if opt.model_type == "resnet":
     pred_y = torch.max(test_output, 1)[1].data.cpu().numpy().squeeze()
     accuracy = sum(pred_y == test_Y)/len(test_Y)
     print(accuracy)
+    print(confusion_matrix(test_Y.astype(int), pred_y))
 
-if opt.model_type == "alexnet":
+elif opt.model_type == "alexnet":
     old_train_X = train_X
     train_X = to_rgb1a(old_train_X, 227, 227)
+    del old_train_X
     old_valid_X = valid_X
     valid_X = to_rgb1a(old_valid_X, 227, 227)
+    del old_valid_X
     old_test_X = test_X
     test_X = to_rgb1a(old_test_X, 227, 227)
+    del old_test_X
 
 
     alexnet = models.alexnet(pretrained=True)
 
     if opt.USE_CUDA:
         alexnet = alexnet.cuda()
-    
+
     # freeze all model parameters
     for param in alexnet.parameters():
         param.requires_grad = False
@@ -253,7 +261,7 @@ if opt.model_type == "alexnet":
     # new final layer with 7 classes
     num_ftrs = alexnet.classifier[6].in_features
     alexnet.classifier._modules['6'] = nn.Linear(num_ftrs, num_labels)
-    
+
     for param in alexnet.classifier[6].parameters():
         param.requires_grad = True
     optimizer = optim.Adam(alexnet.classifier[6].parameters(), lr=0.0001)
@@ -269,21 +277,25 @@ if opt.model_type == "alexnet":
     pred_y = torch.max(test_output, 1)[1].data.cpu().numpy().squeeze()
     accuracy = sum(pred_y == test_Y)/len(test_Y)
     print(accuracy)
+    print(confusion_matrix(test_Y.astype(int), pred_y))
 
-if opt.model_type == "inception":
+elif opt.model_type == "inception":
     old_train_X = train_X
     train_X = to_rgb1a(old_train_X, 299, 299)
+    del old_train_X
     old_valid_X = valid_X
     valid_X = to_rgb1a(old_valid_X, 299, 299)
+    del old_valid_X
     old_test_X = test_X
     test_X = to_rgb1a(old_test_X, 299, 299)
+    del old_test_X
 
 
     incptn = models.inception_v3(pretrained=True)
 
     if opt.USE_CUDA:
         incptn = incptn.cuda()
-    
+
     # freeze all model parameters
     for param in incptn.parameters():
         param.requires_grad = False
@@ -291,10 +303,10 @@ if opt.model_type == "inception":
     # new final layer with 7 classes
     num_ftrs = incptn.fc.in_features
     incptn.fc = torch.nn.Linear(num_ftrs, num_labels)
-    
+
     for param in incptn.fc.parameters():
         param.requires_grad = True
-    
+
     optimizer = optim.Adam(incptn.fc.parameters(), lr=0.0001)
     train(train_X, train_Y, valid_X, valid_Y, optimizer, incptn, batch_size, num_epochs, criterion, to_Add_Softmax=True, is_inception=True)
 
@@ -307,3 +319,4 @@ if opt.model_type == "inception":
     pred_y = torch.max(test_output, 1)[1].data.cpu().numpy().squeeze()
     accuracy = sum(pred_y == test_Y)/len(test_Y)
     print(accuracy)
+    print(confusion_matrix(test_Y.astype(int), pred_y))

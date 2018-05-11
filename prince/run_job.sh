@@ -3,7 +3,7 @@
 #BATCH --job-name=facial
 #SBATCH --gres=gpu:1
 #SBATCH --time=47:00:00
-#SBATCH --mem=15GB
+#SBATCH --mem=60GB
 #SBATCH --output=%A.out
 #SBATCH --error=%A.err
 
