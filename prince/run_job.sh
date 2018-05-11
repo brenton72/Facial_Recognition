@@ -17,5 +17,6 @@ python3 -m pip install opencv-python --user
 learning_rate=$1
 n_epochs=$2
 experiment=$3
+model_type=$4
 
-python3 -u train_model.py  --USE_CUDA --learning_rate $learning_rate --n_epochs $n_epochs --experiment $experiment
+python3 -u train_model.py  --USE_CUDA --learning_rate $learning_rate --n_epochs $n_epochs --experiment $experiment --model_type $model_type
