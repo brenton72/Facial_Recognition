@@ -18,5 +18,6 @@ learning_rate=$1
 n_epochs=$2
 experiment=$3
 model_type=$4
+data_augment=$5
 
-python3 -u train_model.py  --USE_CUDA --learning_rate $learning_rate --n_epochs $n_epochs --experiment $experiment --model_type $model_type
+python3 -u train_model.py  --USE_CUDA --learning_rate $learning_rate --n_epochs $n_epochs --experiment $experiment --model_type $model_type --data_augment $data_augment

@@ -32,6 +32,7 @@ parser.add_argument('--n_epochs', type=int, default=50, help='Learning rate')
 parser.add_argument('--experiment', default='facial_recog_eperiment', help='where to store samples and models')
 parser.add_argument('--input_data_dir', type=str, default="/scratch/sb3923/Facial_Recognition/fer2013/", help="data location")
 parser.add_argument('--model_type', type=str, default="resnet", help='Model type')
+parser.add_argument('--data_augment', type=int, default=0, help='to agment data or not')
 opt = parser.parse_args()
 print(opt)
 
