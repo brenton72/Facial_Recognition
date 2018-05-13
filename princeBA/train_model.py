@@ -67,7 +67,7 @@ def data_iter(x, y, batch_size):
         batch_indices = order[start:start + batch_size]
         yield np.asarray([x[index] for index in batch_indices]) ,np.asarray([y[index] for index in batch_indices])
 
-def early_stop(val_acc_history, t=2, required_progress=0.00005):
+def early_stop(val_acc_history, t=2, required_progress=0.0000000000000000000005):
     cnt = 0 # initialize the count --> to store count of cases where difference in
                                     #  accuracy is less than required progress.
 
@@ -198,8 +198,8 @@ def train(train_X, train_Y, valid_X, valid_Y, optimizer, model, batch_size, num_
     total_batches = int(train_X.shape[0]/ batch_size)
     validation_losses = []
 
-    eval_every = 2
-    print_every = 2
+    eval_every = 0.5
+    print_every = 0.5
     validate_every = int((eval_every/100)*total_batches)
     show_every = int((print_every/100)*total_batches)
 
@@ -259,7 +259,7 @@ def train(train_X, train_Y, valid_X, valid_Y, optimizer, model, batch_size, num_
                 break
             if (i+1) % show_every == 0:
                 print('Epoch: [{0}/{1}], Step: [{2}/{3}], Train loss: {4}, Validation loss:{5}, Valid Acc: {6}%'.format(
-                           epoch, num_epochs, i+1, total_batches, np.mean(losses)/(total_batches*epoch), np.mean(np.array(validation_losses)),
+                           epoch, num_epochs, i+1, total_batches, np.sum(losses)/(total_batches*(epoch-1)+i), np.mean(np.array(validation_losses)),
                            valid_acc))
         if stop_training == True:
             break
@@ -288,6 +288,42 @@ batch_size = 80
 print("before training")
 
 criterion = nn.CrossEntropyLoss()
+
+#TO DELETE-----------------------------------------
+
+def flip_horizontal(image):
+    '''Flips picture horizontally with p=0.75 probability'''
+    r = np.random.rand()
+    if r > 0.25:
+        new_image = image[:, ::-1]
+    else:
+        new_image = image
+    return new_image
+
+def recrop(image, w, h):
+    '''Resizes an image to wxh, then takes a random 48x48 section'''
+    im = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
+    #pick upper pixel -- integer from 0 to 4 (inclusive) 
+    #pick left pixel -- integer from 0 to 4
+    u = np.random.choice([0, 1, 2, 3, 4]) #bad code, but works if we set w=52 and h=52 
+    l = np.random.choice([0, 1, 2, 3, 4]) 
+    new = im[l:l+48, u:u+48]
+    return new
+
+if opt.data_augment == 1:
+    print('Transforming Single-Channel Images')
+    #Create transformed_set
+    transformed_X = np.zeros(len(train_X)*48*48).reshape(len(train_X), 48, 48)
+    for i in range(len(train_X)):
+        flipped = np.array(flip_horizontal(train_X[i]), dtype=float)
+        new_image = np.array(recrop(flipped, 52, 52), dtype=int)
+        transformed_X[i] = new_image
+    
+    #Concatenate transformed images to training set
+    #Concatenate labels of transformed images to training set labels
+    train_X = np.vstack((train_X, transformed_X))
+    train_Y = np.append(train_Y, train_Y)
+#-------------------------------------------------
 
 old_train_X = train_X.copy()
 old_valid_X = valid_X.copy()
@@ -332,7 +368,7 @@ def get_test_set_performance(test_X, test_Y, model):
     
 
 if opt.model_type == "bk":
-    BK = BKStart(num_labels, dropout=0.1)
+    BK = BKStart(num_labels, dropout=0.5)
     optimizer = torch.optim.Adam(BK.parameters(), lr=learning_rate)
     train(train_X, train_Y, valid_X, valid_Y, optimizer, BK, batch_size, num_epochs, criterion)
     BK.train(False)
@@ -342,7 +378,7 @@ if opt.model_type == "bk":
     print(matrix)
 
 elif opt.model_type == "bk12":
-    BK12model = BK12(num_labels, dropout=0.1)
+    BK12model = BK12(num_labels, dropout=0.5)
     optimizer = torch.optim.Adam(BK12model.parameters(), lr=learning_rate)
     train(train_X, train_Y, valid_X, valid_Y, optimizer, BK12model, batch_size, num_epochs, criterion)
     BK12model.train(False)

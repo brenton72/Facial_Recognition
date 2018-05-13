@@ -24,7 +24,6 @@ def convert_to_numpy(data):
     X = data[:,1]
     X = np.asarray([np.asarray(X[i].split(" ")) for i in range(X.shape[0])])
     X = np.asarray([X[i].reshape(48,48).astype(int) for i in range(X.shape[0])])
-    X = np.array(X, dtype=np.uint8)
     y = data[:,0]
     return (X,y)
 
@@ -55,24 +54,29 @@ def to_rgb1a(data, w, h):
         im = data[0]
         ret = np.empty((3, w, h))
         im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
-        im = normalize(im)
         ret[0, :, :] =  ret[1, :, :] =  ret[2, :, :] =  im
         temp[i] = ret
         data = np.delete(data, 0, 0)
     return temp
 
-def create_confusion_matrix(results):
-    #Rows are predicted values, Columns are actual values 
-    table = np.zeros(49).reshape(7,7)
-    for p in range(7):
-        for a in range(7):
-            table[p, a] = len(results[(results['Predicted']==p)&(results['Actual']==a)])
-    table = pd.DataFrame(table)
-    
-    for a in range(7): 
-        table[a] = table[a].astype(int)
-        
-    return table
+def flip_horizontal(image):
+    '''Flips picture horizontally with p=0.75 probability'''
+    r = np.random.rand()
+    if r > 0.25:
+        new_image = image[:, ::-1]
+    else:
+        new_image = image
+    return new_image
+
+def recrop(image, w, h):
+    '''Resizes an image to 52x52, then takes a random 48x48 section'''
+    im = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
+    #pick upper pixel -- integer from 0 to 4 (inclusive) 
+    #pick left pixel -- integer from 0 to 4
+    u = np.random.choice([0, 1, 2, 3, 4]) 
+    l = np.random.choice([0, 1, 2, 3, 4]) 
+    new = im[l:l+48, u:u+48]
+    return new
 
 #---------------------------------------------------
 
@@ -90,28 +94,10 @@ def preprocess(train_X, valid_X, test_X, train_Y, valid_Y, test_Y, model, transf
         #Create transformed_set
         transformed_X = np.zeros(len(train_X)*48*48).reshape(len(train_X), 48, 48)
         for i in range(len(train_X)):
-            first = np.array(train_X[i:i+1], dtype=np.int32)
-            image = torch.IntTensor(torch.from_numpy(first))
-            new_image = transform_single_channel_image(image)
+            flipped = np.array(flip_horizontal(train_X[i]), dtype=float)
+            new_image = np.array(recrop(flipped, 52, 52), dtype=int)
             transformed_X[i] = new_image
-
-    print('Normalizing Single-Channel Images')
-    #Normalize single-chain images
-    old_train_X = train_X.copy()
-    old_valid_X = valid_X.copy()
-    old_test_X = test_X.copy()
-
-    train_X = np.zeros(len(old_train_X)*48*48).reshape(len(old_train_X), 48, 48)
-    valid_X = np.zeros(len(old_valid_X)*48*48).reshape(len(old_valid_X), 48, 48)
-    test_X = np.zeros(len(old_test_X)*48*48).reshape(len(old_test_X), 48, 48)
-
-    for i in range(len(old_train_X)):
-        train_X[i] = normalize(old_train_X[i])
-
-    for i in range(len(old_valid_X)):
-        valid_X[i] = normalize(old_valid_X[i])
-        test_X[i] = normalize(old_test_X[i])
-
+    
     if transform == 1:
         #Concatenate transformed images to training set
         #Concatenate labels of transformed images to training set labels

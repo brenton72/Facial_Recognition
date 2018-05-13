@@ -281,6 +281,42 @@ def get_rescaled_data(train_X, valid_X, test_X, size):
 
     return train_X, valid_X, test_X
 
+
+def flip_horizontal(image):
+    '''Flips picture horizontally with p=0.75 probability'''
+    r = np.random.rand()
+    if r > 0.25:
+        new_image = image[:, ::-1]
+    else:
+        new_image = image
+    return new_image
+
+def recrop(image, w, h):
+    '''Resizes an image to wxh, then takes a random 48x48 section'''
+    im = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
+    #pick upper pixel -- integer from 0 to 4 (inclusive) 
+    #pick left pixel -- integer from 0 to 4
+    u = np.random.choice([0, 1, 2, 3, 4]) #bad code, but works if we set w=52 and h=52 
+    l = np.random.choice([0, 1, 2, 3, 4]) 
+    new = im[l:l+48, u:u+48]
+    return new
+
+if opt.data_augment == 1:
+    print('Transforming Single-Channel Images')
+    #Create transformed_set
+    transformed_X = np.zeros(len(train_X)*48*48).reshape(len(train_X), 48, 48)
+    for i in range(len(train_X)):
+        flipped = np.array(flip_horizontal(train_X[i]), dtype=float)
+        new_image = np.array(recrop(flipped, 52, 52), dtype=int)
+        transformed_X[i] = new_image
+    
+    #Concatenate transformed images to training set
+    #Concatenate labels of transformed images to training set labels
+    train_X = np.vstack((train_X, transformed_X))
+    train_Y = np.append(train_Y, train_Y)
+
+
+
 if opt.model_type == "resnet":
     train_X, valid_X, test_X = get_rescaled_data(train_X, valid_X, test_X, 227)
 
